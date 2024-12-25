@@ -7,6 +7,13 @@ public class ContentNode extends VisualNode
     private String label;
     private String content;
 
+    public ContentNode(String l, String c)
+    {
+        super();
+        label = l;
+        content = c;
+    }
+
     public ContentNode(String l, String c, Set<Node> in, Set<Node> out)
     {
         super(in, out);

@@ -29,8 +29,10 @@ public class Flowchart
         references = new HashMap<>();
         
         top = new Node();
-        bottom = new Node(createNodeSet(top), new HashSet<>());
-        top.addOutbound(bottom);
+        bottom = new Node();
+        connect(top, bottom);
+        bottom.setHeight(1);
+
         nodes.add(top);
         nodes.add(bottom);
     }
@@ -177,8 +179,10 @@ public class Flowchart
      * The new node will be placed one step below its lowest parent and move all children to match.
      * If any of the ins and outs were connected before, this node breaks that connection for itself.
      * @param newNode as node with one-way connections to parents and children to be completed. 
+     * 
+     * REPLACED BY Flowcharts.insertNode
      */
-    public void insertNode(Node newNode)
+    /*public void insertNode(Node newNode)
     {
         //If no nodes specified for in and out, they actually link to hidden top and bottom
         if(newNode.numInbound() == 0) newNode.addInbound(top);
@@ -211,7 +215,7 @@ public class Flowchart
             if(o.getHeight() <= newNode.getHeight()) 
                 o.updateHeight(newNode.getHeight()-o.getHeight()+1, visited, this); //Change height to just below newNode
         }
-    }
+    }*/
 
     // === Helper Methods ===
 

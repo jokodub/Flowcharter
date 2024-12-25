@@ -7,6 +7,15 @@ public abstract class VisualNode extends Node
     private double xPos, yPos;
     private int xDim, yDim;
 
+    public VisualNode()
+    {
+        super();
+        xPos = 0;
+        yPos = 0;
+        xDim = 100;
+        yDim = 100;
+    }
+
     public VisualNode(Set<Node> in, Set<Node> out)
     {
         this(0, 0, in, out);

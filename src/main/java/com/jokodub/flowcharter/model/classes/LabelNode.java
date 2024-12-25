@@ -6,6 +6,12 @@ public class LabelNode extends VisualNode
 {
     private String label;
 
+    public LabelNode(String s)
+    {
+        super();
+        label = s;
+    }
+
     public LabelNode(String s, Set<Node> in, Set<Node> out)
     {
         super(in, out);

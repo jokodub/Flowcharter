@@ -2,6 +2,9 @@ package com.jokodub.flowcharter.model.classes;
 
 import java.util.Scanner;
 import java.util.Set;
+
+import com.jokodub.flowcharter.logic.Flowcharts;
+
 import java.util.HashSet;
 
 public class FlowTester 
@@ -22,15 +25,15 @@ public class FlowTester
             switch(input)
             {
                 case "NN": //New Node
-                    myChart.insertNode(createNode(myChart, scan));
+                    createNode(myChart, scan);
                     myChart.summary();
                     break;
                 case "NL": //New Label
-                    myChart.insertNode(createLabelNode(myChart, scan));
+                    createLabelNode(myChart, scan);
                     myChart.summary();
                     break;
                 case "NC": //New Content
-                    myChart.insertNode(createContentNode(myChart, scan));
+                    createContentNode(myChart, scan);
                     myChart.summary();
                     break;
                 case "L": //Link
@@ -66,7 +69,7 @@ public class FlowTester
         return f.getNodeById(Integer.parseInt(input));
     }
 
-    public static Node createNode(Flowchart f, Scanner scan)
+    public static void createNode(Flowchart f, Scanner scan)
     {
         String input = "";
         String[] splitInput = {};
@@ -93,10 +96,10 @@ public class FlowTester
                 out.add(f.getNodeById(Integer.parseInt(s)));
         }
 
-        return new Node(in, out);
+        Flowcharts.insertNode(f, new Node(), in, out);
     }
 
-    public static LabelNode createLabelNode(Flowchart f, Scanner scan)
+    public static void createLabelNode(Flowchart f, Scanner scan)
     {
         String input = "";
         String[] splitInput = {};
@@ -127,12 +130,11 @@ public class FlowTester
                 out.add(f.getNodeById(Integer.parseInt(s)));
         }
 
-        return new LabelNode(label, in, out);
+        Flowcharts.insertNode(f, new LabelNode(label), in, out);
     }
 
-    public static ContentNode createContentNode(Flowchart f, Scanner scan)
+    public static void createContentNode(Flowchart f, Scanner scan)
     {
-
         String input = "";
         String[] splitInput = {};
 
@@ -166,7 +168,7 @@ public class FlowTester
                 out.add(f.getNodeById(Integer.parseInt(s)));
         }
 
-        return new ContentNode(label, content, in, out);
+        Flowcharts.insertNode(f, new ContentNode(label, content), in, out);
     }
 
 }

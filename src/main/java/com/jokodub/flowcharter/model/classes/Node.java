@@ -15,7 +15,7 @@ public class Node
     private Set<Node> outbound;
     
     //Constructors
-    public Node() //Entirely blank node, use for Top only to start height+1 chain.
+    public Node() //Entirely blank node
     {
         id = ++nodeCount;
         inbound = new HashSet<>();
@@ -39,6 +39,7 @@ public class Node
     //Standard Get-Set-Boilerplates
     public int getId() { return id; }
     public int getHeight() { return height; }
+    public void setHeight(int h) { height = h; }
 
     public Set<Node> getInboundSet() { return inbound; }
     public Set<Node> getOutboundSet() { return outbound; }
@@ -49,11 +50,42 @@ public class Node
     public void removeInbound(Node parent) { inbound.remove(parent); }
     public void removeOutbound(Node child) { outbound.remove(child); }
 
+    public int numInbound() { return inbound.size(); }
+    public int numOutbound() { return outbound.size(); }
+
     public boolean hasInbound(Node n) { return inbound.contains(n); }
     public boolean hasOutbound(Node n) { return outbound.contains(n); }
 
-    public int numInbound() { return inbound.size(); }
-    public int numOutbound() { return outbound.size(); }
+    //Travel upstream looking for searchNode
+    public boolean hasEventualInbound(Node searchNode, Set<Node> visitedNodes) 
+    { 
+        return hasEventualInbound(searchNode, visitedNodes, null); 
+    }
+    /* Recursively return true if this node has a parental chain to searchNode
+     * @param searchNode as Node which could be on the inbound chain of this node
+     * @param visitedNodes as all nodes we've visited in this recursion
+     * @param upstreamNodes as all nodes visited ever
+     * @return true if searchNode is found
+     */
+    public boolean hasEventualInbound(Node searchNode, Set<Node> visitedNodes, Set<Node> upstreamNodes)
+    {   
+        if(upstreamNodes != null) upstreamNodes.add(this);
+
+        //If we've been here before and recursion hasn't ended, it cannot be on this branch and we've looped
+        if(visitedNodes.contains(this)) 
+            return false;
+        else 
+            visitedNodes.add(this);
+
+        if(this == searchNode) return true; //Reached searchNode
+        if(this.height < 1) return false; //Reached top of tree, not here
+
+        //Recurse further up the tree
+        for(Node i : inbound)
+            if(i.hasEventualInbound(searchNode, visitedNodes, upstreamNodes))
+                return true;
+        return false;
+    }
 
     @Override
     public int hashCode() 
