@@ -1,71 +1,66 @@
 package com.jokodub.flowcharter.model.classes;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.Collections;
 
-public class Flowchart
+public class Flowchart 
 {   
     // === Instance Variables ===
 
     private String title;
-    private Set<Node> nodes; //Holds Nodes belonging to this flowchart
-    private HashMap<Node, Set<Node>> links;
-    private HashMap<Node, Set<Node>> references;
-
-    //Nodes placed at top and bottom for organization and sorting.
-    private Node top; //Parent of all heads
-    private Node bottom; //Child of all leafs
+    private Map<Node, List<Integer>> nodePositions; //[Height(vertical), Rank(horizontal)]
+    private Map<Node, List<Set<Node>>> nodeConnections; //[Inbound, Outbound, Links, Mentions]
+    private final Node top;
+    private final Node bottom;
 
     // === Constructors ===
 
     public Flowchart(String title)
     {
-        this.title = title;
-        nodes = new HashSet<>();
-        links = new HashMap<>();
-        references = new HashMap<>();
-        
-        top = new Node();
-        bottom = new Node();
-        connect(top, bottom);
-        bottom.setHeight(1);
+        this.title = title; 
 
-        nodes.add(top);
-        nodes.add(bottom);
+        //Initialize maps of node positions and connections
+        nodePositions = new HashMap<>();
+        nodeConnections = new HashMap<>();
+
+        //Initialize invisible top and bottom nodes for traversal
+        top = new Node("Top");
+        bottom = new Node("Bot");
+        this.registerNode(top);
+        this.registerNode(bottom);
+        this.addEdge(top, bottom);
     }
 
     public Flowchart()
-    {   
+    {
         this("Flowchart");
     }
 
-    // === Getter-Setters ===
+    // === Get-Set ===
 
-    public String getTitle() { return title; }
-    public void setTitle(String s) { title = s; }
-    public Set<Node> getAllNodes() { return nodes; }
-    public Set<Node> getReferences(Node n) { return references.getOrDefault(n, Collections.emptySet()); }
-    public Set<Node> getLinks(Node n) { return links.getOrDefault(n, Collections.emptySet()); }
+    public int getHeight(Node n) { return nodePositions.get(n).get(0); }
+    public int getRank(Node n) { return nodePositions.get(n).get(1); }
+    public void setHeight(Node n, int h) { nodePositions.get(n).set(0, h); }
+    public void setRank(Node n, int r) { nodePositions.get(n).set(1, r); }
+
+    public Set<Node> getAllNodes() { return nodeConnections.keySet(); }
+    public Set<Node> getInboundSet(Node n) { return nodeConnections.get(n).get(0); }
+    public Set<Node> getOutboundSet(Node n) { return nodeConnections.get(n).get(1); }
+    public Set<Node> getLinkSet(Node n) { return nodeConnections.get(n).get(2); }
+    public Set<Node> getMentionSet(Node n) { return nodeConnections.get(n).get(3); }
+
     public Node getTop() { return top; }
     public Node getBottom() { return bottom; }
+    
+    public String getTitle() { return title; }
+    public void setTitle(String t) { title = t; }
 
-    /* Returns of a set of all Nodes that reference this Node. 
-     * @param n as Node that is the subject of the references
-     * @return a Set of all Nodes pointing to n
-     */
-    public Set<Node> getReferencedBy(Node n) 
-    {
-        Set<Node> referencingThis = new HashSet<>();
-
-        for(Map.Entry<Node, Set<Node>> entry : references.entrySet())
-            if(entry.getValue().contains(n))
-                referencingThis.add(entry.getKey());
-
-        return referencingThis;
-    }
+    // === Graph Methods ===
 
     /* Searches all nodes for one matching id
      * @param id as id to search for
@@ -73,64 +68,152 @@ public class Flowchart
      */
     public Node getNodeById(int id)
     {
-        for(Node n : nodes)
+        for(Node n : getAllNodes())
             if(n.getId() == id)
                 return n;
         return null; //else, Node not a part of this flowchart
     }
 
-    // === Adding and Removing Records === 
-
-    /* We maintain a set of all nodes that are in this Flowchart. 
-     * This is more efficient than traversing the tree every time. 
-     * @param n as Node to add to the Flowchart
+    /* Creates an entry for this Node in the Flowchart's Maps,
+     * which means that Node is an element of it. 
+     * Will do nothing if entry already exists.
+     * @param n as Node to create entry for
      */
-    public void register(Node n) 
+    private void registerNode(Node n)
     {
-        nodes.add(n); 
+        //Initialize a list of 4 sets,
+        //  [Inbound connections, Outbound connections, Height links, Mentions]
+        //Null check here as to not create 4 more Sets if entry exists. 
+        if(nodeConnections.putIfAbsent(n, new ArrayList<>(4)) == null)
+            for(int i = 0; i < 4; i++)
+                nodeConnections.get(n).add(new HashSet<>());
+        
+        //Initialize ist of 2 integers, [height, rank]
+        nodePositions.putIfAbsent(n, new ArrayList<>(Arrays.asList(0, 0)));
     }
 
-    //Removes this Node's record, and all records containing it. 
-    public void unregister(Node n) 
-    {
-        links.remove(n); //Remove n's record
-        for(Map.Entry<Node, Set<Node>> entry : links.entrySet()) //Loop to remove n from all
-            if(entry.getValue().contains(n))
-                entry.getValue().remove(n);
-
-        references.remove(n);
-        for(Map.Entry<Node, Set<Node>> entry : references.entrySet())
-            if(entry.getValue().contains(n))
-                entry.getValue().remove(n);
-
-        nodes.remove(n); 
-    }
-
-    public void unregister(int id) { unregister(getNodeById(id)); }
-
-    /* Direct Connection: Two nodes can have a directional parent-child relationship, 
-     * though the connection is not strictly downward, so I use inbound-outbound instead.
-     * **This does not update the heights of each node like Insertion does.** 
-     * @param src as Node connection originates from
-     * @param dest as Node connection leads to
+    /* Deletes a Node from the Flowchart's Maps,
+     * meaning all references to it will be removed.
+     * Node does not need to be registered previously, this will do nothing. 
+     * @param n as Node to remove
      */
-    public void connect(Node src, Node dest)
-    {
-        src.addOutbound(dest);
-        dest.addInbound(src);
+    private void unregisterNode(Node n)
+    {   
+        //Remove all connections to n in other entries
+        for(List<Set<Node>> list : nodeConnections.values())
+            for(Set<Node> set : list)
+                set.remove(n);
+
+        //Remove n's own entries
+        nodeConnections.remove(n); 
+        nodePositions.remove(n);
     }
 
-    //Disconnects a direct relationship, if it exists. 
-    public void unconnect(Node src, Node dest)
+    /* Places a node into the graph with some connections.
+     * A node missing connections to and from it will be connected to an
+     * invisible Top and Bottom, used for traversal and sorting.
+     * @param n as Node to add into the Flowchart
+     * @param inbound as Set of nodes to point to n
+     * @param outbound as Set of nodes n points to
+     */
+    public void addNode(Node n, Set<Node> inbound, Set<Node> outbound)
     {
-        src.removeOutbound(dest);
-        dest.removeInbound(src);
+        registerNode(n);
+
+        //Ensure node with no connections is traverseable
+        if(inbound.isEmpty()) inbound.add(top);
+        if(outbound.isEmpty()) outbound.add(bottom);
+
+        //If n loops, ensure it is both parent AND child of itself
+        if(inbound.contains(n)) outbound.add(n);
+        if(outbound.contains(n)) inbound.add(n);
+
+        //Draw all the edges to n
+        for(Node in : inbound)
+            addEdge(in, n);
+
+        for(Node out : outbound)
+            addEdge(n, out);
+    }
+    
+    public void addNode(Node n)
+    {
+        addNode(n, new HashSet<>(), new HashSet<>());
     }
 
+    /* Removes a node from the graph, severing all connections
+     * Logically identical to removing all record of it.
+     */
+    public void removeNode(Node n)
+    {
+        unregisterNode(n);
+    }
+
+    /* Directionally connects two nodes. 
+     * @param src as start of connection
+     * @param dest as end of connection
+     */
+    public void addEdge(Node src, Node dest)
+    {
+        getOutboundSet(src).add(dest);
+        getInboundSet(dest).add(src);
+    }
+
+    /* Removes a directional connection, if it exists.
+     * @param src as start of connection to remove
+     * @param dest as end of connection to remove
+     */
+    public void removeEdge(Node src, Node dest)
+    {
+        getOutboundSet(src).remove(dest);
+        getInboundSet(dest).remove(src);
+    }
+
+    /* Summarizes the Flowchart by listing every node's
+     * position and connection sets.
+     */
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(this.getTitle() + "\n");
+
+        //Display a summary of each node
+        for(Node n : getAllNodes())
+        {   
+            //Display node's name and placement
+            sb.append(n.toString());
+            sb.append(" (" + getHeight(n) + "," + getRank(n) + ") ");
+            sb.append("\t");
+
+            //Display node's sets of connections
+            sb.append(" In: {"+getInboundSet(n).toString()+"} ");
+            sb.append("Out: {"+getOutboundSet(n).toString()+"} ");
+            sb.append("Lnk: {"+getLinkSet(n).toString()+"} ");
+            sb.append("Mnt: {"+getMentionSet(n).toString()+"} ");
+
+            sb.append("\n");
+        } 
+
+        return sb.toString();
+    }
+    
+
+    // === Link Methods ===
+
+    /* Links the heights of two nodes so they will
+     * always be on the same height level for visual clarity.
+     * @param a,b as nodes to link heights
+     */
+    public void addLink(Node a, Node b)
+    {
+        //make sure all heights are synced
+        /*
     /* Height Link: Two indirectly linked nodes will be forced to the same height, a style 
      * choice for visual clarity. The Nodes may or may not be also directly connected.
      * @param a, b as Nodes to height-link. 
-     */
+     
     public void link(Node a, Node b)
     {
         //First, move highest node down to be level
@@ -147,99 +230,72 @@ public class Flowchart
         links.get(a).add(b);
         links.get(b).add(a);
     }
-
-    //Disconnects an indirect link, if it exists.
-    public void unlink(Node a, Node b)
-    {
-        if(links.containsKey(a))
-            links.get(a).remove(b);
-        if(links.containsKey(b))
-            links.get(b).remove(a);
+    */
     }
 
-    /* Reference: A node may indirectly "reference" another like an appendix. 
-     * A reference is directional and neither Node affects the other. 
-     * @param src as Node needing a reference
-     * @param dest as Node to point to
+    /* Removes the height link between two nodes.
+     * Does not reset heights to what they were before the link.
+     * @param a,b as nodes to unlink
      */
-    public void reference(Node src, Node dest)
+    public void removeLink(Node a, Node b)
     {
-        references.putIfAbsent(src, new HashSet<>());
-        references.get(src).add(dest);
+        getLinkSet(a).remove(b);
+        getLinkSet(b).remove(a);
     }
 
-    //Disconnects an indirect reference, if it exists.
-    public void unreference(Node src, Node dest)
+    // === Mention Methods ===
+
+    /* Adds a superficial directional connection of two nodes
+     * that acts like a footnote. Does not affect structure.
+     * @param src as node to have the note of dest
+     * @param dest as node to be referenced
+     */
+    public void addMention(Node src, Node dest)
     {
-        if(references.containsKey(src))
-            references.get(src).remove(dest);
+        getMentionSet(src).add(dest);
     }
 
-    /* Insert a node into an existing connection. 
-     * The new node will be placed one step below its lowest parent and move all children to match.
-     * If any of the ins and outs were connected before, this node breaks that connection for itself.
-     * @param newNode as node with one-way connections to parents and children to be completed. 
+    /* Removes src's footnote mention of dest, if it exists
+     * @param src as the source of the mention
+     * @param dest as the target of the mention
+     */
+    public void removeMention(Node src, Node dest)
+    {
+        getMentionSet(src).remove(dest);
+    }
+
+    /* Collects all mentions of n into a Set.
+     * Iterates over the connections map because nodes do
+     * not track mentions both ways (intended)
+     * @param n as node to search for mentions of
+     */
+    public Set<Node> allMentionsTo(Node n)
+    {
+        Set<Node> mentionsN = new HashSet<>(); 
+
+        //Iterate over all sets of mentions to find references to n
+        for(Node i : getAllNodes())
+            if(getMentionSet(i).contains(n))
+                mentionsN.add(i);
+        
+        return mentionsN;
+    }
+    
+    // === Height Methods ===
+
+    /*
      * 
-     * REPLACED BY Flowcharts.insertNode
      */
-    /*public void insertNode(Node newNode)
+    public void updateHeight(Node n, int delta)
     {
-        //If no nodes specified for in and out, they actually link to hidden top and bottom
-        if(newNode.numInbound() == 0) newNode.addInbound(top);
-        if(newNode.numOutbound() == 0) newNode.addOutbound(bottom);
 
-        register(newNode); //Register node as a part of this flowchart
-
-        //Connect parents downward
-        for(Node i : newNode.getInboundSet())
-        {
-            i.addOutbound(newNode);
-            
-            //If any in and out were already connected, this node intercepts it.
-            for(Node o : newNode.getOutboundSet())
-                if(i.hasOutbound(o))
-                    unconnect(i, o);
-        }
-
-        //Finalize connection to new node and update heights
-        Set<Node> visited = createNodeSet(newNode);
-        for(Node o : newNode.getOutboundSet())
-        {
-            o.addInbound(newNode);
-
-            //This node is no longer a head because it the parent of newNode, unconnect from Top
-            if(top.hasOutbound(o))
-                unconnect(top, o);
-
-            //If child is above this node, need to bring it down
-            if(o.getHeight() <= newNode.getHeight()) 
-                o.updateHeight(newNode.getHeight()-o.getHeight()+1, visited, this); //Change height to just below newNode
-        }
-    }*/
-
-    // === Helper Methods ===
-
-    /* Creates a HashSet of nodes from a vararg
-     * @param as many Nodes as you need
-     * @return a HashSet initialized with those Nodes.
-     */
-    public static HashSet<Node> createNodeSet(Node... nodes)
-    {
-        HashSet<Node> s = new HashSet<>();
-        for(Node n : nodes)
-            s.add(n);
-        return s;
     }
+}
 
-    public void summary()
-    {
-        System.out.println("--- Summary of "+title+" ---");
-        for(Node n : nodes)
-        {
-            System.out.println(n.toString());
-            System.out.println("----------");
-        }
-    }
+
+
+
+
 
     
-}
+    

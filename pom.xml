@@ -14,8 +14,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -24,6 +24,16 @@
       <artifactId>junit</artifactId>
       <version>4.11</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>23.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-fxml</artifactId>
+      <version>23.0.1</version>
     </dependency>
   </dependencies>
 
@@ -69,7 +79,28 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
         </plugin>
+        <plugin>
+          <groupId>org.openjfx</groupId>
+          <artifactId>javafx-maven-plugin</artifactId>
+          <version>23.0.1</version>
+          <configuration>
+              <mainClass>com.jokodub.flowcharter.Main</mainClass>
+              <options>
+                  <option>--module-path</option>
+      <option>C:/Users/jvezz/OneDrive/Java/flowcharter/lib/javafx-sdk-23.0.1/lib</option> <!-- Correct path to JavaFX lib -->                  <option>--add-modules</option>
+                  <option>javafx.controls,javafx.fxml</option>
+              </options>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
+
+  <repositories>
+    <repository>
+      <id>openjfx</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+  </repositories>
+
 </project>
