@@ -89,28 +89,4 @@ public class Node
                 return true;
         return false;
     }
-
-
-    /* Update the height of this node and recurse to lower nodes
-     * @param change as amount to change height by, can be negative.
-     * @param visitedNodes as a Set of nodes to not hit the same node twice
-     * @param f as Flowchart this node is a part of to get all height-linked nodes (stored as global map not locally)
-    
-    public void updateHeight(int change, Set<Node> visitedNodes, Flowchart f)
-    {
-        visitedNodes.add(this); //Prevent updating this node again
-
-        //Recurse to all children unless visited before
-        for(Node child : outbound)
-            if(!visitedNodes.contains(child))
-                child.updateHeight(change, visitedNodes, f);
-
-        //Recurse to all height-links unless visited before
-        for(Node link : f.getLinks(this))
-            if(!visitedNodes.contains(link))
-                link.updateHeight(change, visitedNodes, f);
-
-        //System.out.println("Updated "+id+" from h="+height+" to h="+(height+change)); //Debugging
-        height += change; //Increment height of all selected nodes after recursion is complete.
-    }
 */

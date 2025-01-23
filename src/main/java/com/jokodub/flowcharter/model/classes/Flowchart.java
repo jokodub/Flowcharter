@@ -34,6 +34,7 @@ public class Flowchart
         this.registerNode(top);
         this.registerNode(bottom);
         this.addEdge(top, bottom);
+        this.setHeight(bottom, 1);
     }
 
     public Flowchart()
@@ -61,6 +62,8 @@ public class Flowchart
     public void setTitle(String t) { title = t; }
 
     // === Graph Methods ===
+
+    public boolean hasEdge(Node src, Node dest) { return getOutboundSet(src).contains(dest); }
 
     /* Searches all nodes for one matching id
      * @param id as id to search for
@@ -202,35 +205,28 @@ public class Flowchart
 
     // === Link Methods ===
 
+    public boolean hasLink(Node n, Node query) { return getLinkSet(n).contains(query); } 
+
     /* Links the heights of two nodes so they will
      * always be on the same height level for visual clarity.
      * @param a,b as nodes to link heights
      */
     public void addLink(Node a, Node b)
     {
-        //make sure all heights are synced
-        /*
-    /* Height Link: Two indirectly linked nodes will be forced to the same height, a style 
-     * choice for visual clarity. The Nodes may or may not be also directly connected.
-     * @param a, b as Nodes to height-link. 
-     
-    public void link(Node a, Node b)
-    {
-        //First, move highest node down to be level
-        //Add the other node to the already-visited set so both are not updated if connected
-        if(a.getHeight() > b.getHeight()) //b needs to be moved down
-            b.updateHeight(a.getHeight()-b.getHeight(), createNodeSet(a), this);
+        //When recursing in the next step, avoid recursing to the one we don't want to move.
+        Set<Node> abSet = new HashSet<>();
+        abSet.add(a);
+        abSet.add(b);
 
-        else if( a.getHeight() < b.getHeight()) //a needs to be moved down
-            a.updateHeight(b.getHeight()-a.getHeight(), createNodeSet(b), this);
+        //Move highest node down to be level, easier than dragging upward
+        if(getHeight(a) > getHeight(b)) //b needs to be moved down
+            updateHeight(b, getHeight(a) - getHeight(b), abSet, false);
+        else if(getHeight(a) < getHeight(b))
+            updateHeight(a, getHeight(b) - getHeight(a), abSet, false);
 
-        //Second, register link
-        links.putIfAbsent(a, new HashSet<>());
-        links.putIfAbsent(b, new HashSet<>());
-        links.get(a).add(b);
-        links.get(b).add(a);
-    }
-    */
+        //Acknowledge link from now on
+        getLinkSet(a).add(b);
+        getLinkSet(b).add(a);
     }
 
     /* Removes the height link between two nodes.
@@ -244,6 +240,8 @@ public class Flowchart
     }
 
     // === Mention Methods ===
+
+    public boolean hasMention(Node n, Node query) { return getMentionSet(n).contains(query); }
 
     /* Adds a superficial directional connection of two nodes
      * that acts like a footnote. Does not affect structure.
@@ -283,12 +281,42 @@ public class Flowchart
     
     // === Height Methods ===
 
-    /*
-     * 
+    /* Recursively update the height of this node and all of its children,
+     * keeping them packed together. 
+     * @param start as the Node whose children and itself will be updated
+     * @param delta as how much to change height by, positive or negative.
      */
-    public void updateHeight(Node n, int delta)
+    public void updateHeight(Node start, int delta)
     {
+        recUpdateHeight(start, delta, new HashSet<>(), true);
+    }
 
+    /* Overload to support multiple recursions without updating shared children
+     * @param previousVisited as a set to be defined outside this call across multiple recursions
+     * @param allowUpwardRecursion to allow recursion to travel to nodes higher than this one
+     */
+    public void updateHeight(Node start, int delta, Set<Node> previousVisited, boolean allowUpwardRecursion)
+    {
+        recUpdateHeight(start, delta, previousVisited, allowUpwardRecursion);
+    }
+
+    private void recUpdateHeight(Node cur, int delta, Set<Node> visited, boolean allowUpwardRecursion)
+    {
+        visited.add(cur); //Prevent updating this node again
+
+        //Recurse to all children not yet visited
+        //Only recurse upward if allowed
+        for(Node child : getOutboundSet(cur))
+            if(!visited.contains(child) && (!(getHeight(child) < getHeight(cur)) || allowUpwardRecursion))
+                recUpdateHeight(child, delta, visited, allowUpwardRecursion);
+
+        //Recurse to all height-links not yet visited
+        for(Node link : getLinkSet(cur))
+            if(!visited.contains(link))
+                recUpdateHeight(cur, delta, visited, allowUpwardRecursion);
+
+        //Recursion has reached every node needed, change heights now.
+        setHeight(cur, getHeight(cur) + delta);
     }
 }
 
